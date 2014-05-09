@@ -1,9 +1,10 @@
 package ru.nsu.ccfit.dorozhko.task3;
 
-import javafx.scene.control.ToolBar;
 import ru.nsu.ccfit.dorozhko.MainFrame;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
@@ -14,6 +15,8 @@ import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
+import java.util.Hashtable;
+import java.util.logging.Filter;
 
 /**
  * Created by Anton on 25.04.2014.
@@ -29,7 +32,7 @@ public class FilterFrames {
         final MainFrame mainFrame = new MainFrame("Лабораторная работа №3");
 
 
-        AbstractAction loadFile = new AbstractAction("Загрузить", MainFrame.createImageIcon("/images/open.png")) {
+        AbstractAction loadFile = new AbstractAction("Загрузить", MainFrame.createImageIcon("/images/document-open-folder.png")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fileopen = new JFileChooser();
@@ -59,7 +62,7 @@ public class FilterFrames {
         mainFrame.addAction(loadFile);
         loadFile.putValue(AbstractAction.SHORT_DESCRIPTION, "открыть bmp и показать в сжатом виде в области оригинал");
 
-        AbstractAction saveFile = new AbstractAction("Сохранить", MainFrame.createImageIcon("/images/save.png")) {
+        AbstractAction saveFile = new AbstractAction("Сохранить", MainFrame.createImageIcon("/images/document-export.png")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image2 != null) {
@@ -96,7 +99,7 @@ public class FilterFrames {
         saveFile.putValue(AbstractAction.SHORT_DESCRIPTION, "сохранить область выделения в bmp");
 
         AbstractAction selectionMode = new AbstractAction("Выделение",
-                MainFrame.createImageIcon("/images/selection.png")) {
+                MainFrame.createImageIcon("/images/edit-select.png")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image != null) {
@@ -113,8 +116,9 @@ public class FilterFrames {
         mainFrame.addAction(selectionMode);
         selectionMode.putValue(AbstractAction.SHORT_DESCRIPTION, "выделить область на оригинале");
 
+        //TODO: change
         AbstractAction gaussBlur = new AbstractAction("Размытие по Гауссу",
-                MainFrame.createImageIcon("/images/gauss_blur.png")) {
+                MainFrame.createImageIcon("/images/gaussblur.png")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image2 != null) {
@@ -132,7 +136,7 @@ public class FilterFrames {
         gaussBlur.putValue(AbstractAction.SHORT_DESCRIPTION, "размытие выделения по Гауссу");
 
         AbstractAction saveFilterResult = new AbstractAction("Выделить фильтр",
-                MainFrame.createImageIcon("/images/copy_fts.png")) {
+                MainFrame.createImageIcon("/images/draw-arrow-back.png")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image3 != null) {
@@ -149,14 +153,415 @@ public class FilterFrames {
         mainFrame.addAction(saveFilterResult);
         saveFilterResult.putValue(AbstractAction.SHORT_DESCRIPTION, "копировать фильтр в выделение");
 
+        // TODO: filters
+
+        AbstractAction watercolor = new AbstractAction("Акварель",
+                MainFrame.createImageIcon("/images/watercolor.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    originImage.setImage3(Filters.sharpen(Filters.median(originImage.image2, 5)));
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(watercolor);
+        watercolor.putValue(AbstractAction.SHORT_DESCRIPTION, "Акварель");
+
+        AbstractAction blackWhiteThreshold = new AbstractAction("Черно-белое",
+                MainFrame.createImageIcon("/images/blackWhite.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    final BufferedImage saved = deepCopy(originImage.image2);
+                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
+                        {
+                            JSlider thresholdSlider = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 255, 140);
+
+                            thresholdSlider.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+                            table.put (0, new JLabel(String.valueOf(0)));
+                            table.put (127, new JLabel(String.valueOf(127)));
+                            table.put (255, new JLabel(String.valueOf(255)));
+                            thresholdSlider.setLabelTable (table);
+
+                            originImage.setImage3(Filters.blackWhite(saved, thresholdSlider.getValue()));
+                            thresholdSlider.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    JSlider source = (JSlider)e.getSource();
+                                    originImage.setImage3(Filters.blackWhite(saved, source.getValue()));
+                                }
+                            });
+                            add(thresholdSlider);
+                        }
+                    }, "Настройки фильтра Черно-белое", JOptionPane.OK_CANCEL_OPTION);
+
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        originImage.setImage3(saved);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(blackWhiteThreshold);
+        blackWhiteThreshold.putValue(AbstractAction.SHORT_DESCRIPTION, "Черно-белое");
+
+
+        AbstractAction magnify = new AbstractAction("Увеличение в 2 раза",
+                MainFrame.createImageIcon("/images/magnify.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    originImage.setImage3(Filters.gaussBlur(
+                            Filters.magnifyX2(originImage.image2.getSubimage(64, 64, 128, 128))));
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(magnify);
+        magnify.putValue(AbstractAction.SHORT_DESCRIPTION, "Увеличение в 2 раза");
+
+        AbstractAction fsDithering = new AbstractAction("Флойд-Стейнберг", null) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    originImage.setImage3(Filters.fsDithering(originImage.image2));
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(fsDithering);
+        fsDithering.putValue(AbstractAction.SHORT_DESCRIPTION, "Флойд-Стейнберг");
+
+
+        AbstractAction parametrizedGaussBlur = new AbstractAction("Параметризованное размытие по Гауссу",
+                MainFrame.createImageIcon("/images/blur.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    final BufferedImage saved = deepCopy(originImage.image2);
+                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
+                        {
+                            JSlider blurRadius = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    1, 6, 3);
+
+                            blurRadius.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+                            table.put (0, new JLabel(String.valueOf(0)));
+                            table.put (3, new JLabel(String.valueOf(3)));
+                            table.put (6, new JLabel(String.valueOf(6)));
+                            blurRadius.setLabelTable(table);
+
+                            originImage.setImage3(Filters.parametrizedGaussBlur(saved, blurRadius.getValue()));
+                            blurRadius.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    JSlider source = (JSlider) e.getSource();
+                                    originImage.setImage3(Filters.parametrizedGaussBlur(saved, source.getValue()));
+                                }
+                            });
+                            add(blurRadius);
+                        }
+                    }, "Настройки фильтра размытие по Гауссу", JOptionPane.OK_CANCEL_OPTION);
+
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        originImage.setImage3(saved);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(parametrizedGaussBlur);
+        parametrizedGaussBlur.putValue(AbstractAction.SHORT_DESCRIPTION, "Параметризованное размытие по Гауссу");
+
+        AbstractAction grayScale = new AbstractAction("Градации серого",
+                MainFrame.createImageIcon("/images/grey.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    originImage.setImage3(Filters.grayScale(originImage.image2));
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(grayScale);
+        grayScale.putValue(AbstractAction.SHORT_DESCRIPTION, "Градации серого");
+
+
+        AbstractAction negative = new AbstractAction("Негатив",
+                MainFrame.createImageIcon("/images/negative.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    originImage.setImage3(Filters.negative(originImage.image2));
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(negative);
+        negative.putValue(AbstractAction.SHORT_DESCRIPTION, "Негатив");
+
+        AbstractAction orderedDithering = new AbstractAction("orderedDithering",
+                MainFrame.createImageIcon("/images/ordered_dithering.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    originImage.setImage3(Filters.orderDithering(originImage.image2));
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        mainFrame.addAction(orderedDithering);
+        orderedDithering.putValue(AbstractAction.SHORT_DESCRIPTION, "orderedDithering");
+
+
+
+        AbstractAction roberts = new AbstractAction("Оператор Робертса",
+                null) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    final BufferedImage saved = deepCopy(originImage.image2);
+                    final BufferedImage roberts = Filters.roberts(saved);
+                    originImage.setImage3(roberts);
+
+                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
+                        {
+                            JSlider borderFeeling = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 10, 1);
+
+                            borderFeeling.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+                            table.put (0, new JLabel(String.valueOf(0)));
+                            table.put (5, new JLabel(String.valueOf(5)));
+                            table.put (10, new JLabel(String.valueOf(10)));
+                            borderFeeling.setLabelTable(table);
+
+                            borderFeeling.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    JSlider source = (JSlider) e.getSource();
+                                    originImage.setImage3(Filters.brightness(roberts, source.getValue()));
+                                }
+                            });
+                            add(borderFeeling);
+                        }
+                    }, "Настройки фильтра Оператор Робертса", JOptionPane.OK_CANCEL_OPTION);
+
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        originImage.setImage3(saved);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(roberts);
+        roberts.putValue(AbstractAction.SHORT_DESCRIPTION, "Оператор Робертса");
+
+        AbstractAction sobel = new AbstractAction("Оператор Собеля",
+                null) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    final BufferedImage saved = deepCopy(originImage.image2);
+                    final BufferedImage sobeled = Filters.sobel(saved);
+                    originImage.setImage3(sobeled);
+
+                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
+                        {
+                            JSlider borderFeeling = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 10, 1);
+
+                            borderFeeling.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+                            table.put (0, new JLabel(String.valueOf(0)));
+                            table.put (5, new JLabel(String.valueOf(5)));
+                            table.put (10, new JLabel(String.valueOf(10)));
+                            borderFeeling.setLabelTable(table);
+
+                            borderFeeling.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    JSlider source = (JSlider) e.getSource();
+                                    originImage.setImage3(Filters.brightness(sobeled, source.getValue()));
+                                }
+                            });
+                            add(borderFeeling);
+                        }
+                    }, "Настройки фильтра Оператор Собеля", JOptionPane.OK_CANCEL_OPTION);
+
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        originImage.setImage3(saved);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(sobel);
+        sobel.putValue(AbstractAction.SHORT_DESCRIPTION, "Оператор Собеля");
+
+        AbstractAction stamp = new AbstractAction("Штамп",
+                MainFrame.createImageIcon("/images/stamp.png")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (originImage.image2 != null) {
+                    final BufferedImage saved = deepCopy(originImage.image2);
+                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
+                        {
+                            setLayout(new GridLayout(2,2));
+                            final JSlider thresholdBlackWhite = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 255, 140);
+
+                            thresholdBlackWhite.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+                            table.put (0, new JLabel(String.valueOf(0)));
+                            table.put (128, new JLabel(String.valueOf(128)));
+                            table.put (255, new JLabel(String.valueOf(255)));
+                            thresholdBlackWhite.setLabelTable(table);
+                            add(new JLabel("Черно-белое"));
+                            add(thresholdBlackWhite);
+
+                            final JSlider blurRadius = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    1, 6, 3);
+
+                            blurRadius.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table2 = new Hashtable<Integer, JLabel>();
+                            table2.put (0, new JLabel(String.valueOf(0)));
+                            table2.put (3, new JLabel(String.valueOf(3)));
+                            table2.put (6, new JLabel(String.valueOf(6)));
+                            blurRadius.setLabelTable(table2);
+                            add(new JLabel("Размытие"));
+                            add(blurRadius);
+
+                            originImage.setImage3(Filters.parametrizedGaussBlur(
+                                    Filters.blackWhite(saved, thresholdBlackWhite.getValue()),
+                                    blurRadius.getValue()));
+
+
+                            thresholdBlackWhite.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    JSlider source = (JSlider) e.getSource();
+                                    originImage.setImage3(Filters.parametrizedGaussBlur(
+                                            Filters.blackWhite(saved, source.getValue()),
+                                                    blurRadius.getValue()));
+                                }
+                            });
+
+                            blurRadius.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    JSlider source = (JSlider) e.getSource();
+                                    originImage.setImage3(Filters.parametrizedGaussBlur(
+                                            Filters.blackWhite(saved, thresholdBlackWhite.getValue()),
+                                            source.getValue()));
+                                }
+                            });
+
+
+
+                        }
+                    }, "Настройки фильтра Штамп", JOptionPane.OK_CANCEL_OPTION);
+
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        originImage.setImage3(saved);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Не выделена область для обработки",
+                            "Inane error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            }
+        };
+        mainFrame.addAction(stamp);
+        stamp.putValue(AbstractAction.SHORT_DESCRIPTION, "Штамп");
+
+
         JMenu operationMenu = new JMenu("Операции задания №3");
         mainFrame.addMenu(operationMenu);
 
         operationMenu.add(selectionMode);
         operationMenu.add(gaussBlur);
         operationMenu.add(saveFilterResult);
+        operationMenu.add(watercolor);
+        operationMenu.add(blackWhiteThreshold);
+        operationMenu.add(magnify);
+        operationMenu.add(fsDithering);
+        operationMenu.add(parametrizedGaussBlur);
+        operationMenu.add(grayScale);
+        operationMenu.add(negative);
+        operationMenu.add(orderedDithering);
+        operationMenu.add(roberts);
+        operationMenu.add(sobel);
+        operationMenu.add(stamp);
 
-        AbstractAction contacts = new AbstractAction("Контакты", MainFrame.createImageIcon("/images/contact.png")) {
+
+        AbstractAction contacts = new AbstractAction("Контакты", MainFrame.createImageIcon("/images/contacts.png")) {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 JOptionPane.showMessageDialog(mainFrame, "name: Dorozhko Anton \n mail: dorozhko.a@gmail.com\n ");
@@ -166,7 +571,7 @@ public class FilterFrames {
         mainFrame.addAction(contacts);
         mainFrame.getAboutMenu().add(contacts);
 
-        AbstractAction aboutAction = new AbstractAction("О программе", MainFrame.createImageIcon("/images/help_info2.png")) {
+        AbstractAction aboutAction = new AbstractAction("О программе", MainFrame.createImageIcon("/images/help.png")) {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 JOptionPane.showMessageDialog(mainFrame, "Лабораторная работа №3\n"
@@ -179,7 +584,7 @@ public class FilterFrames {
         mainFrame.addAction(aboutAction);
         mainFrame.getAboutMenu().add(aboutAction);
 
-        AbstractAction exitAction = new AbstractAction("Выход", MainFrame.createImageIcon("/images/exit.png")) {
+        AbstractAction exitAction = new AbstractAction("Выход", MainFrame.createImageIcon("/images/cross.png")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.exit(0);
