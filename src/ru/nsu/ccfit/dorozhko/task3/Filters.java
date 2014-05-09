@@ -469,6 +469,39 @@ public class Filters {
         return result;
     }
 
+    public static BufferedImage stamp(BufferedImage input) {
+        int stamp[][] = new int[][]{
+                {0,  1, 0},
+                {-1, 0, 1},
+                {0, -1, 0}
+        };
+
+        BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
+
+
+        for (int i = 0; i < result.getWidth(); i++)
+            for (int j = 0; j < result.getHeight(); j++) {
+
+                double newRed = 0;
+                double newGreen = 0;
+                double newBlue = 0;
+
+                for (int s = -1; s < 2; s++) {
+                    for (int k = -1; k < 2; k++) {
+                        Color c = new Color(input.getRGB(Math.abs(i + s) % result.getWidth(),
+                                Math.abs(j + k) % result.getHeight()));
+                        newRed += stamp[s + 1][k + 1] * c.getRed();
+                        newGreen += stamp[s + 1][k + 1] * c.getGreen();
+                        newBlue += stamp[s + 1][k + 1] * c.getBlue();
+                    }
+                }
+
+                result.setRGB(i, j, normColor(newRed + 128, newGreen + 128, newBlue + 128).getRGB());
+            }
+
+        return result;
+    }
+
     public static BufferedImage magnifyX2(BufferedImage input) {
 
         BufferedImage result = new BufferedImage(input.getWidth() * 2, input.getHeight() * 2, input.getType());

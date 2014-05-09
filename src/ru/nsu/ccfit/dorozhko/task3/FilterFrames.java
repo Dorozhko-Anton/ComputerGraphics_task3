@@ -465,71 +465,7 @@ public class FilterFrames {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image2 != null) {
-                    final BufferedImage saved = deepCopy(originImage.image2);
-                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
-                        {
-                            setLayout(new GridLayout(2,2));
-                            final JSlider thresholdBlackWhite = new JSlider(
-                                    SwingConstants.HORIZONTAL,
-                                    0, 255, 140);
-
-                            thresholdBlackWhite.setPaintLabels(true);
-
-                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
-                            table.put (0, new JLabel(String.valueOf(0)));
-                            table.put (128, new JLabel(String.valueOf(128)));
-                            table.put (255, new JLabel(String.valueOf(255)));
-                            thresholdBlackWhite.setLabelTable(table);
-                            add(new JLabel("Черно-белое"));
-                            add(thresholdBlackWhite);
-
-                            final JSlider blurRadius = new JSlider(
-                                    SwingConstants.HORIZONTAL,
-                                    1, 6, 3);
-
-                            blurRadius.setPaintLabels(true);
-
-                            Hashtable<Integer, JLabel> table2 = new Hashtable<Integer, JLabel>();
-                            table2.put (0, new JLabel(String.valueOf(0)));
-                            table2.put (3, new JLabel(String.valueOf(3)));
-                            table2.put (6, new JLabel(String.valueOf(6)));
-                            blurRadius.setLabelTable(table2);
-                            add(new JLabel("Размытие"));
-                            add(blurRadius);
-
-                            originImage.setImage3(Filters.parametrizedGaussBlur(
-                                    Filters.blackWhite(saved, thresholdBlackWhite.getValue()),
-                                    blurRadius.getValue()));
-
-
-                            thresholdBlackWhite.addChangeListener(new ChangeListener() {
-                                @Override
-                                public void stateChanged(ChangeEvent e) {
-                                    JSlider source = (JSlider) e.getSource();
-                                    originImage.setImage3(Filters.parametrizedGaussBlur(
-                                            Filters.blackWhite(saved, source.getValue()),
-                                                    blurRadius.getValue()));
-                                }
-                            });
-
-                            blurRadius.addChangeListener(new ChangeListener() {
-                                @Override
-                                public void stateChanged(ChangeEvent e) {
-                                    JSlider source = (JSlider) e.getSource();
-                                    originImage.setImage3(Filters.parametrizedGaussBlur(
-                                            Filters.blackWhite(saved, thresholdBlackWhite.getValue()),
-                                            source.getValue()));
-                                }
-                            });
-
-
-
-                        }
-                    }, "Настройки фильтра Штамп", JOptionPane.OK_CANCEL_OPTION);
-
-                    if (result == JOptionPane.CANCEL_OPTION) {
-                        originImage.setImage3(saved);
-                    }
+                    originImage.setImage3(Filters.stamp(originImage.image2));
                 } else {
                     JOptionPane.showMessageDialog(mainFrame,
                             "Не выделена область для обработки",
