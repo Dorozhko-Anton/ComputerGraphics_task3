@@ -38,7 +38,7 @@ public class FilterFrames {
                 JFileChooser fileopen = new JFileChooser();
                 File f = null;
                 try {
-                    f = new File(new File(".").getCanonicalPath());
+                    f = new File(new File("./src").getCanonicalPath());
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
@@ -67,9 +67,10 @@ public class FilterFrames {
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image2 != null) {
                     JFileChooser fileopen = new JFileChooser();
+
                     File f = null;
                     try {
-                        f = new File(new File(".").getCanonicalPath());
+                        f = new File(new File("./src").getCanonicalPath());
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     }
