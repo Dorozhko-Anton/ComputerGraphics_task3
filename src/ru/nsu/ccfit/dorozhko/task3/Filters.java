@@ -1,5 +1,7 @@
 package ru.nsu.ccfit.dorozhko.task3;
 
+import ru.nsu.ccfit.dorozhko.Main;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -17,6 +19,11 @@ public class Filters {
             {0.5, 0.75, 0.5}
     };
 
+    /**
+     * gauss blur using 3x3 matrix
+     * @param input image
+     * @return result image
+     */
     public static BufferedImage gaussBlur(BufferedImage input) {
         BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
 
@@ -47,6 +54,16 @@ public class Filters {
         return result;
     }
 
+    /**
+     * parametrized gauss blur
+     * 1) find gauss kernel 1-dimensional
+     * 2) apply kernel bluring by X coord
+     * 3) apply to 2) result kernel bluring by Y
+     *
+     * @param input
+     * @param sigma
+     * @return result image
+     */
     public static BufferedImage parametrizedGaussBlur(BufferedImage input, double sigma) {
 
         // build blur kernel
@@ -108,6 +125,12 @@ public class Filters {
         return result;
     }
 
+    /**
+     * if (color > @threshold) then color = 255 else color = 0;
+     * @param input
+     * @param threshold
+     * @return result image
+     */
     public static BufferedImage blackWhite(BufferedImage input, int threshold) {
         double RED_FACTOR = 0.299;
         double BLUE_FACTOR = 0.114;
@@ -131,6 +154,11 @@ public class Filters {
         return result;
     }
 
+    /**
+     * casual grayscale with hue = 0.299*R + 0.587*G + 0.114*B
+     * @param input
+     * @return result image
+     */
     public static BufferedImage grayScale(BufferedImage input) {
         double RED_FACTOR = 0.299;
         double BLUE_FACTOR = 0.114;
@@ -151,6 +179,11 @@ public class Filters {
         return result;
     }
 
+    /**
+     * negate image color = 255 - color;
+     * @param input
+     * @return result image
+     */
     public static BufferedImage negative(BufferedImage input) {
 
         BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
@@ -168,7 +201,43 @@ public class Filters {
         return result;
     }
 
-    public static BufferedImage fsDithering(BufferedImage input) {
+
+    /**
+     * find closest color with suggested number of hues for each component
+     * @param color
+     * @param numberOfRedHues
+     * @param numberOfGreenHues
+     * @param numberOfBlueHues
+     * @return new color
+     */
+    public static Color closestPaletteColor(Color color,
+                                            int numberOfRedHues,
+                                            int numberOfGreenHues,
+                                            int numberOfBlueHues) {
+        double redHueLength = 256./numberOfRedHues;
+        double greenHueLength = 256./numberOfGreenHues;
+        double blueHueLength = 256./numberOfBlueHues;
+
+        return normColor(Math.round(color.getRed()/redHueLength)*redHueLength,
+                Math.round(color.getGreen()/greenHueLength)*greenHueLength,
+                Math.round(color.getBlue()/blueHueLength)*blueHueLength);
+    }
+
+    /**
+     * The algorithm achieves dithering by pushing (adding) the residual quantization error
+     * of a pixel onto its neighboring pixels, to be dealt with later. It spreads the debt out
+     * according to the distribution (shown as a map of the neighboring pixels)
+     * @param input image
+     * @param numberOfRedHues
+     * @param numberOfGreenHues
+     * @param numberOfBlueHues
+     * @return result image
+     */
+    public static BufferedImage fsDithering(BufferedImage input,
+                                            int numberOfRedHues,
+                                            int numberOfGreenHues,
+                                            int numberOfBlueHues)
+    {
 
         BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
 
@@ -178,9 +247,10 @@ public class Filters {
 
                 Color oldColor = new Color(input.getRGB(i, j));
 
-                Color newColor = new Color((oldColor.getRed() / 32) * 32,
-                        (oldColor.getGreen() / 32) * 32,
-                        (oldColor.getBlue() / 32) * 32);
+                Color newColor = closestPaletteColor(oldColor,
+                        numberOfRedHues,
+                        numberOfGreenHues,
+                        numberOfBlueHues);
 
 
                 result.setRGB(i, j, newColor.getRGB());
@@ -193,6 +263,7 @@ public class Filters {
 
                 if (i + 1 < result.getHeight()) {
                     changeColor = new Color(input.getRGB(i + 1, j));
+
                     input.setRGB(i + 1, j,
                             normColor(
                                     changeColor.getRed() + quantError[0] * 7 / 16,
@@ -200,12 +271,10 @@ public class Filters {
                                     changeColor.getBlue() + quantError[2] * 7 / 16
                             ).getRGB()
                     );
-                }
-                if (j + 1 < input.getWidth() & i + 1 < input.getHeight()) {
 
-                    if (i - 1 > 0) {
-                        changeColor = new Color(input.getRGB(i - 1, j + 1));
-                        input.setRGB(i + 1, j,
+                    if (j - 1 > 0) {
+                        changeColor = new Color(input.getRGB(i + 1, j - 1));
+                        input.setRGB(i + 1, j - 1,
                                 normColor(
                                         changeColor.getRed() + quantError[0] * 3 / 16,
                                         changeColor.getGreen() + quantError[1] * 3 / 16,
@@ -214,21 +283,25 @@ public class Filters {
                         );
                     }
 
+
+                }
+                if (j + 1 < input.getWidth()) {
                     changeColor = new Color(input.getRGB(i, j + 1));
-                    input.setRGB(i + 1, j,
+                    input.setRGB(i, j + 1,
                             normColor(
                                     changeColor.getRed() + quantError[0] * 5 / 16,
                                     changeColor.getGreen() + quantError[1] * 5 / 16,
                                     changeColor.getBlue() + quantError[2] * 5 / 16
                             ).getRGB()
                     );
-                    if (i + 1 < input.getWidth()) {
+
+                    if (i + 1 < input.getHeight()) {
                         changeColor = new Color(input.getRGB(i + 1, j + 1));
-                        input.setRGB(i + 1, j,
+                        input.setRGB(i + 1, j + 1,
                                 normColor(
-                                        changeColor.getRed() + quantError[0] * 1 / 16,
-                                        changeColor.getGreen() + quantError[1] * 1 / 16,
-                                        changeColor.getBlue() + quantError[2] * 1 / 16
+                                        changeColor.getRed() + quantError[0] / 16,
+                                        changeColor.getGreen() + quantError[1] / 16,
+                                        changeColor.getBlue() + quantError[2] / 16
                                 ).getRGB()
                         );
                     }
@@ -239,6 +312,15 @@ public class Filters {
         return result;
     }
 
+    /**
+     * for each y
+     *  for each x
+     *      oldpixel := pixel[x][y] + threshold_map_8x8[x mod 8][y mod 8]
+     *      newpixel := find_closest_palette_color(oldpixel)
+     *      pixel[x][y] := newpixel
+     * @param input image
+     * @return result image
+     */
     public static BufferedImage orderDithering(BufferedImage input) {
         int[] dither = new int[]{1, 49, 13, 61, 4, 52, 16, 64,
                 33, 17, 45, 29, 36, 20, 48, 32,
@@ -277,6 +359,13 @@ public class Filters {
         return result;
     }
 
+    /**
+     *  the idea behind the Roberts cross operator is to approximate the gradient of an image through
+     *  discrete differentiation which is achieved by computing the sum of the squares of the differences
+     *  between diagonally adjacent pixels.
+     * @param input image
+     * @return result image
+     */
     public static BufferedImage roberts(BufferedImage input) {
 
         BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
@@ -312,6 +401,12 @@ public class Filters {
         return result;
     }
 
+    /**
+     *  color = color * @factor
+     * @param input
+     * @param factor
+     * @return result image
+     */
     public static BufferedImage brightness(BufferedImage input, double factor) {
 
         BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
@@ -333,6 +428,11 @@ public class Filters {
         return result;
     }
 
+    /**
+     * make color component valid
+     * @param colorComponent
+     * @return valid component
+     */
     static int normalize(double colorComponent) {
         if (colorComponent > 255) {
             return 255;
@@ -343,11 +443,22 @@ public class Filters {
         return (int) colorComponent;
     }
 
+    /**
+     * make color valid
+     * @param r - not necessary valid color component
+     * @param g - not necessary valid color component
+     * @param b - not necessary valid color component
+     * @return valid color
+     */
     static Color normColor(double r, double g, double b) {
         return new Color(normalize(r), normalize(g), normalize(b));
     }
 
-
+    /**
+     * modification of roberts with different kernel
+     * @param input image
+     * @return result image
+     */
     public static BufferedImage sobel(BufferedImage input) {
         int Gx[][] = new int[][]{
                 {-1, 0, 1},
@@ -402,6 +513,12 @@ public class Filters {
         return result;
     }
 
+    /**
+     *
+     * @param input image
+     * @param size of analyzed neighbourhood
+     * @return result image
+     */
     public static BufferedImage median(BufferedImage input, int size) {
 
         BufferedImage result = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
@@ -436,6 +553,11 @@ public class Filters {
         return result;
     }
 
+    /**
+     * sharpening edges
+     * @param input image
+     * @return result image
+     */
     public static BufferedImage sharpen(BufferedImage input) {
         int sharpen[][] = new int[][]{
                 {0, -1, 0},
@@ -469,6 +591,11 @@ public class Filters {
         return result;
     }
 
+    /**
+     * filter with 0 sum of kernel elements
+     * @param input image
+     * @return result image
+     */
     public static BufferedImage stamp(BufferedImage input) {
         int stamp[][] = new int[][]{
                 {0,  1, 0},
@@ -502,6 +629,11 @@ public class Filters {
         return result;
     }
 
+    /**
+     * magnify with linear extrapolation
+     * @param input
+     * @return result image
+     */
     public static BufferedImage magnifyX2(BufferedImage input) {
 
         BufferedImage result = new BufferedImage(input.getWidth() * 2, input.getHeight() * 2, input.getType());

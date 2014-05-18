@@ -117,7 +117,6 @@ public class FilterFrames {
         mainFrame.addAction(selectionMode);
         selectionMode.putValue(AbstractAction.SHORT_DESCRIPTION, "выделить область на оригинале");
 
-        //TODO: change
         AbstractAction gaussBlur = new AbstractAction("Размытие по Гауссу",
                 MainFrame.createImageIcon("/images/gaussblur.png")) {
             @Override
@@ -153,8 +152,6 @@ public class FilterFrames {
         };
         mainFrame.addAction(saveFilterResult);
         saveFilterResult.putValue(AbstractAction.SHORT_DESCRIPTION, "копировать фильтр в выделение");
-
-        // TODO: filters
 
         AbstractAction watercolor = new AbstractAction("Акварель",
                 MainFrame.createImageIcon("/images/watercolor.png")) {
@@ -245,7 +242,129 @@ public class FilterFrames {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (originImage.image2 != null) {
-                    originImage.setImage3(Filters.fsDithering(originImage.image2));
+                    final BufferedImage saved = deepCopy(originImage.image2);
+                    int result = JOptionPane.showConfirmDialog(null, new JPanel() {
+                        {
+                            setLayout(new GridLayout(3, 2));
+                            //red slider
+                            final JSlider redHue = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 255, 127);
+                            final JLabel redHueLabel = new JLabel(String.valueOf(redHue.getValue()));
+
+                            redHue.setBorder(BorderFactory.createTitledBorder("Оттенки красного"));
+                            redHue.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+                            table.put (0, new JLabel(String.valueOf(0)));
+                            table.put (127, new JLabel(String.valueOf(127)));
+                            table.put (255, new JLabel(String.valueOf(255)));
+                            redHue.setLabelTable(table);
+
+
+                            add(redHue);
+                            add(redHueLabel);
+
+                            // green slider
+                            final JSlider greenHue = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 255, 127);
+                            final JLabel greenHueLabel = new JLabel(String.valueOf(greenHue.getValue()));
+
+                            greenHue.setBorder(BorderFactory.createTitledBorder("Оттенки зеленого"));
+                            greenHue.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> greenTable = new Hashtable<Integer, JLabel>();
+                            greenTable.put(0, new JLabel(String.valueOf(0)));
+                            greenTable.put(127, new JLabel(String.valueOf(127)));
+                            greenTable.put(255, new JLabel(String.valueOf(255)));
+                            greenHue.setLabelTable(greenTable);
+
+                            add(greenHue);
+                            add(greenHueLabel);
+
+                            //blue slider
+                            final JSlider blueHue = new JSlider(
+                                    SwingConstants.HORIZONTAL,
+                                    0, 255, 127);
+                            final JLabel blueHueLabel = new JLabel(String.valueOf(blueHue.getValue()));
+
+                            blueHue.setBorder(BorderFactory.createTitledBorder("Оттенки синего"));
+                            blueHue.setPaintLabels(true);
+
+                            Hashtable<Integer, JLabel> blueTable = new Hashtable<Integer, JLabel>();
+                            blueTable.put(0, new JLabel(String.valueOf(0)));
+                            blueTable.put(127, new JLabel(String.valueOf(127)));
+                            blueTable.put(255, new JLabel(String.valueOf(255)));
+                            blueHue.setLabelTable(blueTable);
+                            add(blueHue);
+                            add(blueHueLabel);
+
+                            // listeners
+                            
+                            redHue.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    originImage.setImage3(
+                                            Filters.fsDithering(
+                                                    deepCopy(originImage.image2),
+                                                    redHue.getValue(),
+                                                    greenHue.getValue(),
+                                                    blueHue.getValue()
+                                                    ));
+                                    redHueLabel.setText(String.valueOf(redHue.getValue()));
+                                }
+                            });
+
+                            greenHue.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    originImage.setImage3(
+                                            Filters.fsDithering(
+                                                    deepCopy(originImage.image2),
+                                                    redHue.getValue(),
+                                                    greenHue.getValue(),
+                                                    blueHue.getValue()
+                                            ));
+                                    greenHueLabel.setText(String.valueOf(greenHue.getValue()));
+                                }
+                            });
+
+                            blueHue.addChangeListener(new ChangeListener() {
+                                @Override
+                                public void stateChanged(ChangeEvent e) {
+                                    originImage.setImage3(
+                                            Filters.fsDithering(
+                                                    deepCopy(originImage.image2),
+                                                    redHue.getValue(),
+                                                    greenHue.getValue(),
+                                                    blueHue.getValue()
+                                            ));
+                                    blueHueLabel.setText(String.valueOf(blueHue.getValue()));
+                                }
+                            });
+
+
+
+
+                            originImage.setImage3(
+                                    Filters.fsDithering(
+                                            deepCopy(originImage.image2),
+                                            redHue.getValue(),
+                                            greenHue.getValue(),
+                                            blueHue.getValue()
+                                    ));
+
+                        }
+                    }, "Настройки фильтра Флойда-Стейнберга", JOptionPane.OK_CANCEL_OPTION);
+
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        originImage.setImage3(saved);
+                    }
+
+
+
+
                 } else {
                     JOptionPane.showMessageDialog(mainFrame,
                             "Не выделена область для обработки",
@@ -369,27 +488,27 @@ public class FilterFrames {
                 if (originImage.image2 != null) {
                     final BufferedImage saved = deepCopy(originImage.image2);
                     final BufferedImage roberts = Filters.roberts(saved);
-                    originImage.setImage3(roberts);
+                    originImage.setImage3(Filters.blackWhite(roberts, 150));
 
                     int result = JOptionPane.showConfirmDialog(null, new JPanel() {
                         {
                             JSlider borderFeeling = new JSlider(
                                     SwingConstants.HORIZONTAL,
-                                    0, 10, 1);
+                                    0, 255, 140);
 
                             borderFeeling.setPaintLabels(true);
 
                             Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
                             table.put (0, new JLabel(String.valueOf(0)));
-                            table.put (5, new JLabel(String.valueOf(5)));
-                            table.put (10, new JLabel(String.valueOf(10)));
+                            table.put (125, new JLabel(String.valueOf(125)));
+                            table.put (255, new JLabel(String.valueOf(255)));
                             borderFeeling.setLabelTable(table);
 
                             borderFeeling.addChangeListener(new ChangeListener() {
                                 @Override
                                 public void stateChanged(ChangeEvent e) {
                                     JSlider source = (JSlider) e.getSource();
-                                    originImage.setImage3(Filters.brightness(roberts, source.getValue()));
+                                    originImage.setImage3(Filters.blackWhite(roberts, source.getValue()));
                                 }
                             });
                             add(borderFeeling);
@@ -418,27 +537,27 @@ public class FilterFrames {
                 if (originImage.image2 != null) {
                     final BufferedImage saved = deepCopy(originImage.image2);
                     final BufferedImage sobeled = Filters.sobel(saved);
-                    originImage.setImage3(sobeled);
+                    originImage.setImage3(Filters.blackWhite(sobeled, 150));
 
                     int result = JOptionPane.showConfirmDialog(null, new JPanel() {
                         {
                             JSlider borderFeeling = new JSlider(
                                     SwingConstants.HORIZONTAL,
-                                    0, 10, 1);
+                                    0, 255, 140);
 
                             borderFeeling.setPaintLabels(true);
 
                             Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
                             table.put (0, new JLabel(String.valueOf(0)));
-                            table.put (5, new JLabel(String.valueOf(5)));
-                            table.put (10, new JLabel(String.valueOf(10)));
+                            table.put (125, new JLabel(String.valueOf(125)));
+                            table.put (255, new JLabel(String.valueOf(255)));
                             borderFeeling.setLabelTable(table);
 
                             borderFeeling.addChangeListener(new ChangeListener() {
                                 @Override
                                 public void stateChanged(ChangeEvent e) {
                                     JSlider source = (JSlider) e.getSource();
-                                    originImage.setImage3(Filters.brightness(sobeled, source.getValue()));
+                                    originImage.setImage3(Filters.blackWhite(sobeled, source.getValue()));
                                 }
                             });
                             add(borderFeeling);
